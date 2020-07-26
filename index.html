@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#db5945">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="https://unpkg.com/onsenui/css/onsenui.css">
+  <link rel="stylesheet" href="https://unpkg.com/onsenui/css/onsen-css-components.min.css">
+  <link rel="apple-touch-icon" sizes="180x180" href="/android-icon-192x192.png">
+  <script src="https://unpkg.com/onsenui/js/onsenui.min.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(() => console.log("Service Worker Registered"))
+        .catch(e => console.log(e));
+    }
+  </script>
+  <meta charset="UTF-8">
+
+  <title>Puzzled !!!</title>
+  <style>
+    body {
+      padding: 10px;
+      margin: 10px
+    }
+  </style>
+</head>
+
+<body>
+  <script src="processing.min.js"> </script>
+  <script src="hammer.min.js"></script>
+  <script src="jquery-3.4.1.min.js"></script>
+<center>
+<img src="android-icon-192x192.png"/><br/><br/>
+SUKARI Player runs as a fullscreen app. <br/>Click on the button below to install Sukari to the home screen or App drawer.<br/>
+<br/>If you don't see any button below, chances are that you already installed it!!<br/><br/>
+
+Happy puzzling!!<br/><br/>
+
+
+<button class="add-button">Add to home screen</button>
+</center>
+  <script>
+    let deferredPrompt;
+    const addBtn = document.querySelector('.add-button');
+    addBtn.style.display = 'none';
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Prevent Chrome 67 and earlier from automatically showing the prompt
+      e.preventDefault();
+      // Stash the event so it can be triggered later.
+      deferredPrompt = e;
+      // Update UI to notify the user they can add to home screen
+      addBtn.style.display = 'block';
+
+      addBtn.addEventListener('click', (e) => {
+        // hide our user interface that shows our A2HS button
+        addBtn.style.display = 'none';
+        // Show the prompt
+        deferredPrompt.prompt();
+        // Wait for the user to respond to the prompt
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('User accepted the A2HS prompt');
+          } else {
+            console.log('User dismissed the A2HS prompt');
+          }
+          deferredPrompt = null;
+        });
+      });
+    });
+
+    //document.body.addEventListener('touchmove', function(event) {
+    //    event.preventDefault();
+    //}, false);
+
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#db5945">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="https://unpkg.com/onsenui@2.10.10/css/onsenui.css">
+  <link rel="stylesheet" href="https://unpkg.com/onsenui@2.10.10/css/onsen-css-components.min.css">
+  <link rel="apple-touch-icon" sizes="180x180" href="/android-icon-192x192.png">
+  <script src="https://unpkg.com/onsenui@2.10.10/js/onsenui.min.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(() => console.log("Service Worker Registered"))
+        .catch(e => console.log(e));
+    }
+  </script>
+  <meta charset="UTF-8">
+
+  <title>Puzzled !!!</title>
+  <style>
+    body {
+      padding: 0px;
+      margin: 0px
+    }
+
+    canvas#c4 {
+      top: 0px;
+      left: 0px;
+      position: absolute;
+      opacity: 1
+    }
+
+    #main {
+      padding: 0px;
+      overflow-y: hidden;
+      overflow-x: hidden;
+      width: 100vw !important;
+      height: 100vh !important;
+      background-image: url(bg.jpg)
+    }
+
+    body {
+      padding: 0px !important;
+      overflow-y: hidden !important;
+      overflow-x: hidden !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      background-image: url(bg.jpg)
+    }
+
+    #puzcontainer {
+      margin: 2px;
+      overflow-y: hidden;
+      transform: rotate(0deg);
+      transform-origin: left top 0px;
+      z-index: 1;
+      background-image: url(puzzled.jpg);
+      background-repeat: no-repeat;
+      height: 100%
+    }
+
+    td {
+      padding: 6px;
+      padding-left: 20px
+    }
+
+    #buttons {
+      right: 0px;
+      bottom: 0px;
+      border-width: 1px;
+      border-color: #0076ff !important;
+      padding: 5px;
+      position: fixed;
+      font-size: 40px;
+      border-style: solid;
+      border-radius: 10px;
+      background-color: #dddddd;
+      text-align: justify;
+      opacity: 1
+    }
+
+    #btns ons-button {
+      font-family: arial;
+      font-size: 20px;
+      font-weight: regular;
+      text-align: center;
+      width: 46px;
+      height: 46px;
+    }
+
+    #btns table,
+    tr,
+    td {
+      margin: 0px;
+      padding: 0px;
+      border-width: 0px;
+    }
+
+    #jlog ons-button {
+      width: 100%;
+    }
+
+    #burger {
+      right: 0px;
+      top: 0px;
+      position: absolute;
+      opacity: 1 height: 45px !important;
+      border-width: 1px;
+      border-color: #0076ff !important;
+      border-radius: 10px;
+    }
+
+    canvas#tgrid {
+      top: 0px;
+      left: 0px;
+      position: absolute;
+      opacity: 1
+    }
+
+    canvas#mtrail {
+      top: 0px;
+      left: 0px;
+      position: absolute;
+      opacity: 0.5
+    }
+
+    canvas#hlight {
+      top: 0px;
+      left: 0px;
+      position: absolute;
+      opacity: 0.9
+    }
+
+    .toolbar-button--material {
+      height: 45px
+    }
+
+    body,
+    body>* {
+      touch-action: none !important
+    }
+  </style>
+</head>
+
+<body>
+  <script src="processing.min.js"> </script>
+  <script src="hammer.min.js"></script>
+  <script src="jquery-3.4.1.min.js"></script>
+
+  <script>
+    pzpack = [];
+
+    function pzadd(pz) {
+      pzpack[pz.pzname.replace(/[^A-Za-z0-9]/g, "")] = pz;
+    }
+  </script>
+
+  <script src="gspzls.js"></script>
+  <script>
+    clog = ""
+    pzlayout = "0909";
+    pzdata = "";
+    pztype = "";
+    sch = window.innerHeight - 4
+    dwidth = sch;
+    curpzl = "";
+    BKG = "";
+    mTrail = false;
+    PSF = 1;
+    mpos1 = 0;
+    mpos2 = 0;
+
+    function listToMatrix(list, elementsPerSubArray) {
+      var matrix = [],
+        i, k;
+      for (i = 0, k = -1; i < list.length; i++) {
+        if (i % elementsPerSubArray === 0) {
+          k++;
+          matrix[k] = [];
+        }
+        matrix[k].push(list[i]);
+      }
+      return matrix;
+    }
+    cpos1 = 0;
+    cpos2 = 0;
+    mpos1 = 0;
+    mpos2 = 0;
+    posX = 0;
+    posY = 0;
+    rot = 0;
+    scl = 1;
+    pwidth = pzlayout.substr(0, 2) * 1
+    pdepth = pzlayout.substr(2, 2) * 1
+
+    var mtxt = new Array(pdepth, pwidth)
+    var htxt = new Array(pdepth + 1, pwidth + 1)
+    var vtxt = new Array(pdepth + 1, pwidth + 1)
+
+    var sugg = new Array(pdepth, pwidth)
+
+    window.fn = {};
+
+    window.fn.open = function() {
+      var menu = document.getElementById('menu');
+      menu.open();
+    };
+
+    window.fn.load = function(page) {
+      var content = document.getElementById('content');
+      var menu = document.getElementById('menu');
+      content.load(page)
+        .then(menu.close.bind(menu));
+
+    };
+
+    function sesame(pcode) {
+      pzlayout = pzpack[pcode].pzlayout
+      pzname = pzpack[pcode].pzname.replace(/[^A-Za-z0-9]/g, "")
+      pztype = pzpack[pcode].pztype
+      pzdata = pzpack[pcode].pzdata
+      cset = pzpack[pcode].pzshades
+      curpzl = pzname;
+      localStorage.setItem("curpzl", pzname);
+
+      processingInstance = Processing.getInstanceById('c4');
+      processingInstance.setup();
+      processingInstance.draw();
+      processingInstance2 = Processing.getInstanceById('hlight');
+      processingInstance2.setup();
+      processingInstance2.draw();
+      processingInstance3 = Processing.getInstanceById('tgrid');
+      processingInstance3.setup();
+      processingInstance3.draw();
+
+      document.getElementById("puzcontainer").style.background = "url()"
+      menu.close();
+      $("#main").css('clip', function() {
+        return 'rect( 2px,' + window.innerWidth - 4 + 'px,' + window.innerHeight - 4 + 'px, 2px)';
+      });
+      $("#puzcontainer").css('height', function() {
+        return (window.innerHeight - 4) + 'px';
+      });
+      $(".suka").prop("disabled", true);
+      $(".hito").prop("disabled", true);
+      if (pztype == 'sudoku' || pztype == 'kakuro' || pztype == 'killer') {
+        $(".suka").prop("disabled", false);
+      }
+      if (pztype == 'hitori') {
+        $(".hito").prop("disabled", false);
+      }
+      //consolelog(pztype);
+      //consolelog(pzdata);
+
+    }
+
+    // Below line was added to support Killer Sudoku. Not meant for other Puzzle Types
+    rgnbase = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+    // Below function was added for Loop-the-loop puzzle to determine nearest edge from the cursor click position
+    function tarea(x1, y1, x2, y2, x3, y3) {
+      return Math.abs(0.5 * (x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2)))
+    }
+
+    // Puzzle solbved until now is stored in LocalStorage. Below function allows to clear it.
+    function clsls() {
+
+      if (confirm("Sure to clear the puzzle?")) {
+        mtxt = listToMatrix(gridtxt.split(""), pdepth);
+        if (pztype == "loop") {
+          vtxt = listToMatrix(gridtxt.split(""), pdepth);
+          htxt = listToMatrix(gridtxt.split(""), pdepth);
+        }
+        localStorage.removeItem(curpzl); //, JSON.stringify(mtxt)
+      }
+    }
+
+    function toggle(n) {
+      console.log(n);
+      return ((n * 1 + 1) % 3) + "";
+    }
+
+    function saveloop(vl) {
+      localStorage.setItem(curpzl, JSON.stringify({
+        "htxt": htxt,
+        "vtxt": vtxt
+      }));
+    }
+
+    function txtfill(vl) {
+      mtxt[cpos1][cpos2] = mtxt[cpos1][cpos2].trim() + "" + vl
+      localStorage.setItem(curpzl, JSON.stringify(mtxt));
+    }
+
+    function txtclr() {
+      mtxt[cpos1][cpos2] = ""
+      localStorage.setItem(curpzl, JSON.stringify(mtxt));
+    }
+
+    function dcb(vl) {
+      mtxt[cpos1][cpos2] = vl;
+      localStorage.setItem(curpzl, JSON.stringify(mtxt));
+    }
+
+    function showModal() {
+      var modal = document.querySelector('ons-modal');
+      modalcontent.value = "log:\n" + clog
+      modal.show();
+
+    }
+
+    function consolelog(ltxt) {
+      clog += ltxt + "\n"
+    }
+  </script>
+
+  <ons-splitter>
+    <ons-splitter-side id="menu" side="right" width="450px" collapse page="menu.html"></ons-splitter-side>
+    <ons-splitter-content id="content">
+      <ons-page id="main">
+        <div id="puzcontainer">
+          <canvas id="mtrail" data-processing-sources="mtrail.pde"></canvas><canvas id="hlight" data-processing-sources="hlight.pde"></canvas><canvas id="tgrid" data-processing-sources="pzgrid.pde"></canvas><canvas id="c4" data-processing-sources="pzbase.pde"></canvas>
+        </div>
+        <ons-gesture-detector>
+          <center>
+            <div id="buttons">
+              <table id="btns">
+                <tr>
+                  <td>
+                    <ons-button onclick="txtfill(1)" class="suka">1</ons-button>
+                    <ons-button onclick="txtfill(2)" class="suka">2</ons-button>
+                    <ons-button onclick="txtfill(3)" class="suka">3</ons-button>
+                    <ons-button onclick="dcb('1')" class="hito" style="height:46px;width:46px;background-image:url('hit1.JPG');background-size:cover;"></ons-button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <ons-button onclick="txtfill(4)" class="suka">4</ons-button>
+                    <ons-button onclick="txtfill(5)" class="suka">5</ons-button>
+                    <ons-button onclick="txtfill(6)" class="suka">6</ons-button>
+                    <ons-button onclick="dcb('2')" class="hito" style="height:46px;width:46px;background-image:url('hit2.png');background-size:cover;"></ons-button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <ons-button onclick="txtfill(7)" class="suka">7</ons-button>
+                    <ons-button onclick="txtfill(8)" class="suka">8</ons-button>
+                    <ons-button onclick="txtfill(9)" class="suka">9</ons-button>
+                    <ons-button onclick="dcb('')" class="hito" style="height:46px;width:46px;background-image:url('hitb.png');background-size:cover;"></ons-button>
+                  </td>
+                </tr>
+                <tr>
+
+                  <td id="jlog">
+                    <ons-button id="resetb" onclick="txtclr()">clear</ons-button>
+                  </td>
+
+                  <script>
+                    document.addEventListener('hold', function(event) {
+                      if (event.target.matches('#resetb')) {
+                        clsls();
+                        //showModal();
+                      }
+                    });
+                  </script>
+                </tr>
+              </table>
+            </div>
+          </center>
+        </ons-gesture-detector>
+        <ons-toolbar-button id="burger" onclick="fn.open()">
+          <ons-icon icon="bars" size="32px"></ons-icon>
+        </ons-toolbar-button>
+
+      </ons-page>
+
+    </ons-splitter-content>
+  </ons-splitter>
+
+  <template id="menu.html">
+    <ons-page>
+      <ons-toolbar>
+        <div class="center skrhead" modifier="material transparent">
+          <ons-icon icon="fa-puzzle-piece" size="24px"></ons-icon> &nbsp;SUKARI Player
+        </div>
+      </ons-toolbar>
+      <ons-list id="menucon">
+        <script>
+          menucon = ""
+          for (var key in pzpack) {
+            //console.log(key, pzlpack[key]);
+            menucon += '<ons-list-item tappable onclick="sesame(\'' + key + '\')">' + pzpack[key].pzname + '</ons-list-item>';
+          }
+          document.getElementById('menucon').innerHTML = menucon;
+          //ons.compile(menu);
+        </script>
+      </ons-list>
+	  <!--ons-tabbar position="top" static="true">
+    <ons-tab page="tab1.html" icon="fa-delicious" badge="7" active>
+    </ons-tab>
+    <ons-tab page="tab2.html" icon="fa-gear" active-icon="fa-gear">
+    </ons-tab>
+  </ons-tabbar-->
+
+    </ons-page>
+  </template>
+  <ons-modal direction="up">
+    <div style="text-align: center;width:100%; height:100%">
+      <p>
+        <textarea row=10 style="width:100%; height:300px" id="modalcontent"></textarea>
+        <ons-button onclick="var modal = document.querySelector('ons-modal');modal.hide();">Hide</ons-button>
+      </p>
+    </div>
+  </ons-modal>
+  <script>
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Prevent Chrome 67 and earlier from automatically showing the prompt
+      e.preventDefault();
+      // Stash the event so it can be triggered later.
+      deferredPrompt = e;
+      // Update UI to notify the user they can add to home screen
+      addBtn.style.display = 'block';
+
+      addBtn.addEventListener('click', (e) => {
+        // hide our user interface that shows our A2HS button
+        addBtn.style.display = 'none';
+        // Show the prompt
+        deferredPrompt.prompt();
+        // Wait for the user to respond to the prompt
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('User accepted the A2HS prompt');
+          } else {
+            console.log('User dismissed the A2HS prompt');
+          }
+          deferredPrompt = null;
+        });
+      });
+    });
+
+    //document.body.addEventListener('touchmove', function(event) {
+    //    event.preventDefault();
+    //}, false);
+
+    var stage = document.getElementById('puzcontainer');
+    //document.getElementById('jlog').innerHTML="<br>sdsdsdsdsdsdsds"
+    var mc = new Hammer.Manager(stage);
+
+    var rotate = new Hammer.Rotate();
+    var pinch = new Hammer.Pinch();
+    var pan = new Hammer.Pan();
+    var tap = new Hammer.Tap({
+      event: 'tap',
+      taps: 1
+    });
+
+    mc.add([pinch, pan, rotate, tap]);
+    mc.get('pinch').set({
+      enable: true
+    })
+    mc.get('rotate').set({
+      enable: true
+    })
+    mc.get('tap').set({
+      enable: true
+    })
+
+    var adjustScale = 1;
+    var currentScale = null;
+    var currentRotation = null;
+    var adjustRotation = 0;
+    var initRotation = 0;
+    var adjustDeltaX = 0;
+    var adjustDeltaY = 0;
+    var currentDeltaX = null;
+    var currentDeltaY = null;
+    mTrail = false;
+
+    mc.on("tap", function(e) {})
+    mc.on("pinch pan rotate", function(e) {
+      var transforms = [];
+      currentRotation = 0;
+      currentScale = adjustScale * e.scale;
+      if (e.rotation != 0) {
+        currentDeltaX = adjustDeltaX + e.deltaX;
+        currentDeltaY = adjustDeltaY + e.deltaY;
+      } else {
+        var elmnt = document.getElementById("main");
+        mpos2 = Math.round((e.center.x + elmnt.scrollLeft - posX * scl) / scl)
+        mpos1 = Math.round((e.center.y + elmnt.scrollTop - posY * scl) / scl)
+        mTrail = true;
+        //var elmnt = document.getElementById("main");
+        //consolelog("main: "+ elmnt.scrollLeft + " " + elmnt.scrollTop);
+        //var elmnt = document.getElementById("puzcontainer");
+        //consolelog("puzcontainer: "+ elmnt.scrollLeft + " " + elmnt.scrollTop);
+        //var elmnt = document.getElementById("content");
+        //consolelog("content: "+ elmnt.scrollLeft + " " + elmnt.scrollTop);
+        
+      }
+      transforms.push('scale(' + currentScale + ')');
+      transforms.push('translate(' + currentDeltaX + 'px,' + currentDeltaY + 'px)');
+      transforms.push('rotate(' + currentRotation + 'deg)');
+      stage.style.transform = transforms.join(' ');
+
+
+    })
+
+    mc.on("panend pinchend rotateend", function(e) {
+      adjustScale = currentScale;
+      adjustRotation = currentRotation;
+      adjustDeltaX = currentDeltaX;
+      adjustDeltaY = currentDeltaY;
+      posX = adjustDeltaX;
+      posY = adjustDeltaY;
+      rot = currentRotation;
+      scl = adjustScale;
+      mTrail = false;
+    })
+    mc.on("rotatestart", function(e) {
+      initRotation = e.rotation;
+
+    })
+  </script>
+</body>
+
+</html>
